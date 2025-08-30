@@ -1,0 +1,289 @@
+[
+  {
+    "id": "captain-america",
+    "name": "Captain America",
+    "slug": "captain-america",
+    "role": "Vanguard",
+    "img": "https://rivalskins.com/wp-content/uploads/marvel-assets/assets/lord-icons/Captain%20America%20Deluxe%20Avatar.png"
+  },
+  {
+    "id": "doctor-strange",
+    "name": "Doctor Strange",
+    "slug": "doctor-strange",
+    "role": "Vanguard",
+    "img": "https://rivalskins.com/wp-content/uploads/marvel-assets/assets/lord-icons/Doctor%20Strange%20Deluxe%20Avatar.png"
+  },
+  {
+    "id": "emma-frost",
+    "name": "Emma Frost",
+    "slug": "emma-frost",
+    "role": "Vanguard",
+    "img": "https://rivalskins.com/wp-content/uploads/marvel-assets/assets/lord-icons/Emma%20Frost%20Deluxe%20Avatar.png"
+  },
+  {
+    "id": "groot",
+    "name": "Groot",
+    "slug": "groot",
+    "role": "Vanguard",
+    "img": "https://rivalskins.com/wp-content/uploads/marvel-assets/assets/lord-icons/Groot%20Deluxe%20Avatar.png"
+  },
+  {
+    "id": "hulk",
+    "name": "Hulk",
+    "slug": "hulk",
+    "role": "Vanguard",
+    "img": "https://rivalskins.com/wp-content/uploads/marvel-assets/assets/lord-icons/Hero%20Hulk%20Deluxe%20Avatar.png"
+  },
+  {
+    "id": "magneto",
+    "name": "Magneto",
+    "slug": "magneto",
+    "role": "Vanguard",
+    "img": "https://rivalskins.com/wp-content/uploads/marvel-assets/assets/lord-icons/Magneto%20Deluxe%20Avatar.png"
+  },
+  {
+    "id": "peni-parker",
+    "name": "Peni Parker",
+    "slug": "peni-parker",
+    "role": "Vanguard",
+    "img": "https://rivalskins.com/wp-content/uploads/marvel-assets/assets/lord-icons/Peni%20Parker%20Deluxe%20Avatar.png"
+  },
+  {
+    "id": "the-thing",
+    "name": "The Thing",
+    "slug": "the-thing",
+    "role": "Vanguard",
+    "img": "https://rivalskins.com/wp-content/uploads/marvel-assets/assets/lord-icons/The%20Thing%20Deluxe%20Avatar.png"
+  },
+  {
+    "id": "thor",
+    "name": "Thor",
+    "slug": "thor",
+    "role": "Vanguard",
+    "img": "https://rivalskins.com/wp-content/uploads/marvel-assets/assets/lord-icons/Thor%20Deluxe%20Avatar.png"
+  },
+  {
+    "id": "venom",
+    "name": "Venom",
+    "slug": "venom",
+    "role": "Vanguard",
+    "img": "https://rivalskins.com/wp-content/uploads/marvel-assets/assets/lord-icons/Venom%20Deluxe%20Avatar.png"
+  },
+  {
+    "id": "black-panther",
+    "name": "Black Panther",
+    "slug": "black-panther",
+    "role": "Duelist",
+    "img": "https://rivalskins.com/wp-content/uploads/marvel-assets/assets/lord-icons/Black%20Panther%20Deluxe%20Avatar.png"
+  },
+  {
+    "id": "black-widow",
+    "name": "Black Widow",
+    "slug": "black-widow",
+    "role": "Duelist",
+    "img": "https://rivalskins.com/wp-content/uploads/marvel-assets/assets/lord-icons/Black%20Widow%20Deluxe%20Avatar.png"
+  },
+  {
+    "id": "blade",
+    "name": "Blade",
+    "slug": "blade",
+    "role": "Duelist",
+    "img": "https://rivalskins.com/wp-content/uploads/marvel-assets/assets/lord-icons/Blade%20Deluxe%20Avatar.png"
+  },
+  {
+    "id": "hawkeye",
+    "name": "Hawkeye",
+    "slug": "hawkeye",
+    "role": "Duelist",
+    "img": "https://rivalskins.com/wp-content/uploads/marvel-assets/assets/lord-icons/Hawkeye%20Deluxe%20Avatar.png"
+  },
+  {
+    "id": "hela",
+    "name": "Hela",
+    "slug": "hela",
+    "role": "Duelist",
+    "img": "https://rivalskins.com/wp-content/uploads/marvel-assets/assets/lord-icons/Hela%20Deluxe%20Avatar.png"
+  },
+  {
+    "id": "human-torch",
+    "name": "Human Torch",
+    "slug": "human-torch",
+    "role": "Duelist",
+    "img": "https://rivalskins.com/wp-content/uploads/marvel-assets/assets/lord-icons/Human%20Torch%20Deluxe%20Avatar.png"
+  },
+  {
+    "id": "iron-fist",
+    "name": "Iron Fist",
+    "slug": "iron-fist",
+    "role": "Duelist",
+    "img": "https://rivalskins.com/wp-content/uploads/marvel-assets/assets/lord-icons/Iron%20Fist%20Deluxe%20Avatar.png"
+  },
+  {
+    "id": "iron-man",
+    "name": "Iron Man",
+    "slug": "iron-man",
+    "role": "Duelist",
+    "img": "https://rivalskins.com/wp-content/uploads/marvel-assets/assets/lord-icons/Iron%20Man%20Deluxe%20Avatar.png"
+  },
+  {
+    "id": "magik",
+    "name": "Magik",
+    "slug": "magik",
+    "role": "Duelist",
+    "img": "https://rivalskins.com/wp-content/uploads/marvel-assets/assets/lord-icons/Magik%20Deluxe%20Avatar.png"
+  },
+  {
+    "id": "mister-fantastic",
+    "name": "Mister Fantastic",
+    "slug": "mister-fantastic",
+    "role": "Duelist",
+    "img": "https://rivalskins.com/wp-content/uploads/marvel-assets/assets/lord-icons/Mister%20Fantastic%20Deluxe%20Avatar.png"
+  },
+  {
+    "id": "moon-knight",
+    "name": "Moon Knight",
+    "slug": "moon-knight",
+    "role": "Duelist",
+    "img": "https://rivalskins.com/wp-content/uploads/marvel-assets/assets/lord-icons/Moon%20Knight%20Deluxe%20Avatar.png"
+  },
+  {
+    "id": "namor",
+    "name": "Namor",
+    "slug": "namor",
+    "role": "Duelist",
+    "img": "https://rivalskins.com/wp-content/uploads/marvel-assets/assets/lord-icons/Namor%20Deluxe%20Avatar.png"
+  },
+  {
+    "id": "phoenix",
+    "name": "Phoenix",
+    "slug": "phoenix",
+    "role": "Duelist",
+    "img": "https://rivalskins.com/wp-content/uploads/marvel-assets/assets/lord-icons/Phoenix%20Deluxe%20Avatar%20%28will%20be%20replaced%20by%20better%20image%20once%20its%20released%29.png"
+  },
+  {
+    "id": "psylocke",
+    "name": "Psylocke",
+    "slug": "psylocke",
+    "role": "Duelist",
+    "img": "https://rivalskins.com/wp-content/uploads/marvel-assets/assets/lord-icons/Psylocke%20Deluxe%20Avatar.png"
+  },
+  {
+    "id": "scarlet-witch",
+    "name": "Scarlet Witch",
+    "slug": "scarlet-witch",
+    "role": "Duelist",
+    "img": "https://rivalskins.com/wp-content/uploads/marvel-assets/assets/lord-icons/Scarlet%20Witch%20Deluxe%20Avatar.png"
+  },
+  {
+    "id": "spider-man",
+    "name": "Spider-Man",
+    "slug": "spider-man",
+    "role": "Duelist",
+    "img": "https://rivalskins.com/wp-content/uploads/marvel-assets/assets/lord-icons/Spider-Man%20Deluxe%20Avatar.png"
+  },
+  {
+    "id": "squirrel-girl",
+    "name": "Squirrel Girl",
+    "slug": "squirrel-girl",
+    "role": "Duelist",
+    "img": "https://rivalskins.com/wp-content/uploads/marvel-assets/assets/lord-icons/Squirrel%20Girl%20Deluxe%20Avatar.png"
+  },
+  {
+    "id": "star-lord",
+    "name": "Star-Lord",
+    "slug": "star-lord",
+    "role": "Duelist",
+    "img": "https://rivalskins.com/wp-content/uploads/marvel-assets/assets/lord-icons/Star-Lord%20Deluxe%20Avatar.png"
+  },
+  {
+    "id": "storm",
+    "name": "Storm",
+    "slug": "storm",
+    "role": "Duelist",
+    "img": "https://rivalskins.com/wp-content/uploads/marvel-assets/assets/lord-icons/Storm%20Deluxe%20Avatar.png"
+  },
+  {
+    "id": "the-punisher",
+    "name": "The Punisher",
+    "slug": "the-punisher",
+    "role": "Duelist",
+    "img": "https://rivalskins.com/wp-content/uploads/marvel-assets/assets/lord-icons/The%20Punisher%20Deluxe%20Avatar.png"
+  },
+  {
+    "id": "winter-soldier",
+    "name": "Winter Soldier",
+    "slug": "winter-soldier",
+    "role": "Duelist",
+    "img": "https://rivalskins.com/wp-content/uploads/marvel-assets/assets/lord-icons/Winter%20Soldier%20Deluxe%20Avatar.png"
+  },
+  {
+    "id": "wolverine",
+    "name": "Wolverine",
+    "slug": "wolverine",
+    "role": "Duelist",
+    "img": "https://rivalskins.com/wp-content/uploads/marvel-assets/assets/lord-icons/Wolverine%20Deluxe%20Avatar.png"
+  },
+  {
+    "id": "adam-warlock",
+    "name": "Adam Warlock",
+    "slug": "adam-warlock",
+    "role": "Strategist",
+    "img": "https://rivalskins.com/wp-content/uploads/marvel-assets/assets/lord-icons/Adam%20Warlock%20Deluxe%20Avatar.png"
+  },
+  {
+    "id": "cloak-and-dagger",
+    "name": "Cloak & Dagger",
+    "slug": "cloak-and-dagger",
+    "role": "Strategist",
+    "img": "https://rivalskins.com/wp-content/uploads/marvel-assets/assets/lord-icons/Cloak%20%26%20Dagger%20Deluxe%20Avatar.png"
+  },
+  {
+    "id": "invisible-woman",
+    "name": "Invisible Woman",
+    "slug": "invisible-woman",
+    "role": "Strategist",
+    "img": "https://rivalskins.com/wp-content/uploads/marvel-assets/assets/lord-icons/Invisible%20Woman%20Deluxe%20Avatar.png"
+  },
+  {
+    "id": "jeff-the-land-shark",
+    "name": "Jeff the Land Shark",
+    "slug": "jeff-the-land-shark",
+    "role": "Strategist",
+    "img": "https://rivalskins.com/wp-content/uploads/marvel-assets/assets/lord-icons/Jeff%20the%20Land%20Shark%20Deluxe%20Avatar.png"
+  },
+  {
+    "id": "loki",
+    "name": "Loki",
+    "slug": "loki",
+    "role": "Strategist",
+    "img": "https://rivalskins.com/wp-content/uploads/marvel-assets/assets/lord-icons/Loki%20Deluxe%20Avatar.png"
+  },
+  {
+    "id": "luna-snow",
+    "name": "Luna Snow",
+    "slug": "luna-snow",
+    "role": "Strategist",
+    "img": "https://rivalskins.com/wp-content/uploads/marvel-assets/assets/lord-icons/Luna%20Snow%20Deluxe%20Avatar.png"
+  },
+  {
+    "id": "mantis",
+    "name": "Mantis",
+    "slug": "mantis",
+    "role": "Strategist",
+    "img": "https://rivalskins.com/wp-content/uploads/marvel-assets/assets/lord-icons/Mantis%20Deluxe%20Avatar.png"
+  },
+  {
+    "id": "rocket-raccoon",
+    "name": "Rocket Raccoon",
+    "slug": "rocket-raccoon",
+    "role": "Strategist",
+    "img": "https://rivalskins.com/wp-content/uploads/marvel-assets/assets/lord-icons/Rocket%20Raccoon%20Deluxe%20Avatar.png"
+  },
+  {
+    "id": "ultron",
+    "name": "Ultron",
+    "slug": "ultron",
+    "role": "Strategist",
+    "img": "https://rivalskins.com/wp-content/uploads/marvel-assets/assets/lord-icons/Ultron%20Deluxe%20Avatar.png"
+  }
+]
