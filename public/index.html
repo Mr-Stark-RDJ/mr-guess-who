@@ -3,33 +3,39 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>Marvel Rivals Guess‑Who</title>
+<title>Marvel Rivals Guess-Who</title>
 <link rel="stylesheet" href="/styles.css"/>
 </head>
 <body>
 <header>
-  <div class="brand">Rivals Guess‑Who</div>
+  <div class="brand">Rivals Guess-Who</div>
   <div class="room">
     <input id="roomInput" placeholder="Room code"/>
+    <button id="createBtn">Create</button>
     <button id="joinBtn">Join</button>
+    <button id="copyLinkBtn">Copy Link</button>
     <span id="roomStatus"></span>
   </div>
 </header>
+
 <main>
   <section class="controls">
     <button id="resetBtn">Reset</button>
     <button id="allOnBtn">All On</button>
     <button id="allOffBtn">All Off</button>
+    <button id="secretModeBtn">Secret Mode: OFF</button>
     <button id="randomSecretBtn">Pick Secret</button>
     <button id="exportBtn">Export State</button>
     <span class="hint">Solo works offline. Join a room for synced flips.</span>
   </section>
+
   <section class="board" id="board"></section>
+
   <section class="side">
     <div class="secret">
       <div class="title">Your Secret</div>
-      <div id="secretSlot" class="secretSlot"></div>
-      <button id="clearSecretBtn">Clear Secret</button>
+      <div id="secretSlot" class="secretSlot">None</div>
+      <button id="clearSecretBtn" class="btn danger">Clear Secret</button>
     </div>
     <div class="chat">
       <div class="title">Q&A</div>
@@ -42,6 +48,7 @@
     </div>
   </section>
 </main>
+
 <script src="/socket.io/socket.io.js"></script>
 <script src="/client.js"></script>
 </body>
