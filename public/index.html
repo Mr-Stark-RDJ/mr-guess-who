@@ -24,9 +24,10 @@
     <button id="allOnBtn">All On</button>
     <button id="allOffBtn">All Off</button>
     <button id="secretModeBtn">Secret Mode: OFF</button>
-    <button id="randomSecretBtn">Pick Secret</button>
+    <button id="lockSecretBtn">Lock Secret</button>
+    <button id="submitBtn" disabled>Submit Guess</button>
     <button id="exportBtn">Export State</button>
-    <span class="hint">Solo works offline. Join a room for synced flips.</span>
+    <span class="hint">Private boards. Results reveal only after both submit.</span>
   </section>
 
   <section class="board" id="board"></section>
@@ -34,8 +35,7 @@
   <section class="side">
     <div class="secret">
       <div class="title">Your Secret</div>
-      <div id="secretSlot" class="secretSlot">None</div>
-      <button id="clearSecretBtn" class="btn danger">Clear Secret</button>
+      <div id="secretSlot" class="secretSlot">Not selected</div>
     </div>
     <div class="chat">
       <div class="title">Q&A</div>
