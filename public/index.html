@@ -48,23 +48,21 @@
 </main>
 
 <div id="resultModal" class="modal hidden">
-  <div class="modal-card">
+  <div class="modal-card" id="modalCard">
     <div class="modal-title" id="modalTitle"></div>
     <div class="modal-grid">
       <div class="modal-col">
-        <div class="modal-sub">You</div>
-        <div id="youCard" class="mini-card"></div>
-        <div id="youGuess" class="mini-meta"></div>
+        <div class="modal-sub" id="leftSub"></div>
+        <div id="leftCard" class="mini-card"></div>
       </div>
       <div class="modal-col">
-        <div class="modal-sub">Opponent</div>
-        <div id="oppCard" class="mini-card"></div>
-        <div id="oppGuess" class="mini-meta"></div>
+        <div class="modal-sub" id="rightSub"></div>
+        <div id="rightCard" class="mini-card"></div>
       </div>
     </div>
     <div class="modal-actions">
       <button id="playAgainBtn" class="cta">Play Again</button>
-      <button id="closeModalBtn">Close</button>
+      <button id="closeModalBtn" class="sec">Close</button>
     </div>
   </div>
 </div>

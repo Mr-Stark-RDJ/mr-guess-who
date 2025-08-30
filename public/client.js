@@ -14,14 +14,17 @@ const chatLog=document.getElementById("chatLog");
 const chatText=document.getElementById("chatText");
 const chatSend=document.getElementById("chatSend");
 const chatUser=document.getElementById("chatUser");
+
 const resultModal=document.getElementById("resultModal");
+const modalCard=document.getElementById("modalCard");
 const modalTitle=document.getElementById("modalTitle");
-const youCard=document.getElementById("youCard");
-const oppCard=document.getElementById("oppCard");
-const youGuess=document.getElementById("youGuess");
-const oppGuess=document.getElementById("oppGuess");
+const leftSub=document.getElementById("leftSub");
+const rightSub=document.getElementById("rightSub");
+const leftCard=document.getElementById("leftCard");
+const rightCard=document.getElementById("rightCard");
 const playAgainBtn=document.getElementById("playAgainBtn");
 const closeModalBtn=document.getElementById("closeModalBtn");
+
 const alertModal=document.getElementById("alertModal");
 const alertBody=document.getElementById("alertBody");
 const alertOkBtn=document.getElementById("alertOkBtn");
@@ -177,18 +180,15 @@ function submitGuess(){
 
 function showResults(p){
   const youOk = p.you.correct;
-  const oppName = nameFor(p.opponent.secret);
-  const youName = nameFor(p.you.secret);
-  const youGuessName = nameFor(p.you.guess);
-  const oppGuessName = nameFor(p.opponent.guess);
-
+  modalCard.classList.toggle("win", youOk);
+  modalCard.classList.toggle("lose", !youOk);
   modalTitle.textContent = youOk ? "Victory" : "Defeat";
-  modalTitle.style.color = youOk ? "var(--good)" : "var(--bad)";
 
-  youCard.innerHTML = `<div class="pic"><img src="${imgFor(p.you.secret)}"/></div><div class="name">${youName}</div>`;
-  oppCard.innerHTML = `<div class="pic"><img src="${imgFor(p.opponent.secret)}"/></div><div class="name">${oppName}</div>`;
-  youGuess.textContent = `Your guess: ${youGuessName}`;
-  oppGuess.textContent = `Opponent guess: ${oppGuessName}`;
+  leftSub.textContent = "Opponent’s Secret";
+  rightSub.textContent = "Your Pick";
+
+  leftCard.innerHTML = `<div class="pic"><img src="${imgFor(p.opponent.secret)}"/></div><div class="name">${nameFor(p.opponent.secret)}</div>`;
+  rightCard.innerHTML = `<div class="pic"><img src="${imgFor(p.you.guess)}"/></div><div class="name">${nameFor(p.you.guess)}</div>`;
 
   resultModal.classList.remove("hidden");
 }
