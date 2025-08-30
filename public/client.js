@@ -27,41 +27,77 @@ let secretMode=false;
 let committed=false;
 
 function cardHTML(h){
-  return `<div class="card" data-id="${h.id}"><div class="thumb"><img src="${h.img||("icons/"+h.slug+".png")}" alt="${h.name}" onerror="this.style.display='none';this.nextElementSibling.style.display='grid'"/><div class="fallback" style="display:none">${h.name.split(" ").map(x=>x[0]).slice(0,2).join("")}</div></div><div class="meta">${h.name}</div></div>`;
+  return `<div class="card" data-id="${h.id}">
+    <div class="thumb">
+      <img src="${h.img||("icons/"+h.slug+".png")}" alt="${h.name}" onerror="this.style.display='none';this.nextElementSibling.style.display='grid'"/>
+      <div class="fallback" style="display:none">${h.name.split(" ").map(x=>x[0]).slice(0,2).join("")}</div>
+    </div>
+    <div class="meta">${h.name}</div>
+  </div>`;
 }
+
 function render(){
   board.innerHTML=heroes.map(cardHTML).join("");
   board.querySelectorAll(".card").forEach(c=>{
     const id=c.dataset.id;
     if(flipped.has(id)) c.classList.add("off");
-    c.onclick=()=>{ if(secretMode){ secret=id; secretSlot.textContent="Secret selected"; } else { toggle(id); } checkSubmitState(); };
+    if(secret===id) c.classList.add("is-secret");
+    c.onclick=()=>{ 
+      if(secretMode){ selectSecret(id); } 
+      else { toggle(id); checkSubmitState(); } 
+    };
   });
+  drawSecret();
   checkSubmitState();
 }
+
+function selectSecret(id){
+  secret=id;
+  board.querySelectorAll(".card").forEach(x=>x.classList.remove("is-secret"));
+  const el=board.querySelector(`.card[data-id="${id}"]`);
+  if(el) el.classList.add("is-secret");
+  drawSecret();
+  lockSecretBtn.disabled=false;
+}
+
 function toggle(id){
   if(flipped.has(id)) flipped.delete(id); else flipped.add(id);
   const el=board.querySelector(`.card[data-id="${id}"]`);
   if(el) el.classList.toggle("off",flipped.has(id));
 }
+
 function all(off){
   const ids=heroes.map(h=>h.id);
   flipped = new Set(off?ids:[]);
   board.querySelectorAll(".card").forEach(c=> c.classList.toggle("off",off));
   checkSubmitState();
 }
+
 function reset(){
   flipped.clear();
   board.querySelectorAll(".card").forEach(c=> c.classList.remove("off"));
   checkSubmitState();
 }
+
 function onlyOn(){
   for(const h of heroes){ if(!flipped.has(h.id)) return h.id; }
   return null;
 }
+
 function checkSubmitState(){
   const onCount = heroes.length - flipped.size;
   submitBtn.disabled = onCount!==1;
 }
+
+function drawSecret(){
+  if(!secret){ secretSlot.textContent="Not selected"; lockSecretBtn.disabled=true; return; }
+  const h=heroes.find(x=>x.id===secret);
+  secretSlot.innerHTML=`<div class="card" style="width:110px">
+    <div class="thumb"><img src="${h.img||("icons/"+h.slug+".png")}" /></div>
+    <div class="meta">${h.name}</div>
+  </div>`;
+}
+
 function tenc(n){ return n.toString(16).padStart(2,"0"); }
 function randHex(len=16){ const a=new Uint8Array(len); crypto.getRandomValues(a); return Array.from(a).map(tenc).join(""); }
 async function sha256Hex(s){ const d=await crypto.subtle.digest("SHA-256", new TextEncoder().encode(s)); return Array.from(new Uint8Array(d)).map(tenc).join(""); }
@@ -74,11 +110,12 @@ function ensureSocket(){
   socket.on("reveal:request", ()=>{ if(committed && secret && nonce) socket.emit("secret:reveal",{room:joinedRoom,secret,nonce}); });
   socket.on("round:result", p=>{
     const you = p.you.correct ? "You WON" : "You LOST";
-    const opp = heroes.find(x=>x.id===p.opponent.secret)?.name || p.opponent.secret;
-    roomStatus.textContent=`${you}. Opponent's secret: ${opp}`;
+    const oppName = heroes.find(x=>x.id===p.opponent.secret)?.name || p.opponent.secret;
+    roomStatus.textContent=`${you}. Opponent's secret: ${oppName}`;
   });
   socket.on("round:reset", ()=>{
-    committed=false; secret=null; nonce=null; secretSlot.textContent="Not selected"; submitBtn.disabled=true;
+    committed=false; secret=null; nonce=null; drawSecret(); submitBtn.disabled=true;
+    board.querySelectorAll(".card").forEach(c=>c.classList.remove("is-secret"));
   });
 }
 
@@ -119,12 +156,12 @@ function copyInvite(){
 
 async function lockSecret(){
   if(!joinedRoom) return;
-  if(!secret){ secretSlot.textContent="Pick in Secret Mode"; return; }
+  if(!secret){ roomStatus.textContent="Pick a secret in Secret Mode"; return; }
   nonce = randHex(16);
   const commit = await sha256Hex(`${secret}:${nonce}`);
   ensureSocket();
   socket.emit("secret:commit",{room:joinedRoom,commit});
-  committed=true; secretSlot.textContent="Locked ✓";
+  committed=true; roomStatus.textContent="Secret locked";
 }
 
 function submitGuess(){
@@ -143,7 +180,7 @@ exportBtn.onclick=()=>{
   if(navigator.clipboard) navigator.clipboard.writeText(JSON.stringify({off,on},null,2));
   alert("State copied");
 };
-secretModeBtn.onclick=()=>{ secretMode=!secretMode; secretModeBtn.textContent=secretMode?"Secret Mode: ON":"Secret Mode: OFF"; };
+secretModeBtn.onclick=()=>{ secretMode=!secretMode; secretModeBtn.textContent=secretMode?"Secret Mode: ON":"Secret Mode: OFF"; render(); };
 lockSecretBtn.onclick=lockSecret;
 submitBtn.onclick=submitGuess;
 
