@@ -20,12 +20,11 @@
 
 <main>
   <section class="controls">
-    <button id="resetBtn">Reset</button>
-    <button id="allOnBtn">All On</button>
-    <button id="allOffBtn">All Off</button>
+    <button id="clearBtn">Clear</button>
+    <button id="toggleAllBtn">Hide All</button>
     <button id="secretModeBtn">Secret Mode: OFF</button>
-    <button id="lockSecretBtn">Lock Secret</button>
-    <button id="submitBtn" disabled>Submit Guess</button>
+    <button id="lockSecretBtn" disabled>Lock Secret</button>
+    <button id="submitBtn" class="cta" disabled>Submit Guess</button>
     <button id="exportBtn">Export State</button>
     <span class="hint">Private boards. Results reveal only after both submit.</span>
   </section>
@@ -48,6 +47,30 @@
     </div>
   </section>
 </main>
+
+<div id="resultModal" class="modal hidden">
+  <div class="modal-card">
+    <div class="modal-title" id="modalTitle"></div>
+    <div class="modal-grid">
+      <div class="modal-col">
+        <div class="modal-sub">You</div>
+        <div id="youCard" class="mini-card"></div>
+        <div id="youGuess" class="mini-meta"></div>
+      </div>
+      <div class="modal-col">
+        <div class="modal-sub">Opponent</div>
+        <div id="oppCard" class="mini-card"></div>
+        <div id="oppGuess" class="mini-meta"></div>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button id="playAgainBtn" class="cta">Play Again</button>
+      <button id="closeModalBtn">Close</button>
+    </div>
+  </div>
+</div>
+
+<div id="toasts"></div>
 
 <script src="/socket.io/socket.io.js"></script>
 <script src="/client.js"></script>

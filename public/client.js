@@ -1,7 +1,6 @@
 const board=document.getElementById("board");
-const resetBtn=document.getElementById("resetBtn");
-const allOnBtn=document.getElementById("allOnBtn");
-const allOffBtn=document.getElementById("allOffBtn");
+const clearBtn=document.getElementById("clearBtn");
+const toggleAllBtn=document.getElementById("toggleAllBtn");
 const exportBtn=document.getElementById("exportBtn");
 const secretModeBtn=document.getElementById("secretModeBtn");
 const lockSecretBtn=document.getElementById("lockSecretBtn");
@@ -16,6 +15,15 @@ const chatLog=document.getElementById("chatLog");
 const chatText=document.getElementById("chatText");
 const chatSend=document.getElementById("chatSend");
 const chatUser=document.getElementById("chatUser");
+const resultModal=document.getElementById("resultModal");
+const modalTitle=document.getElementById("modalTitle");
+const youCard=document.getElementById("youCard");
+const oppCard=document.getElementById("oppCard");
+const youGuess=document.getElementById("youGuess");
+const oppGuess=document.getElementById("oppGuess");
+const playAgainBtn=document.getElementById("playAgainBtn");
+const closeModalBtn=document.getElementById("closeModalBtn");
+const toasts=document.getElementById("toasts");
 
 let heroes=[]; 
 let flipped=new Set(); 
@@ -24,7 +32,10 @@ let socket=null;
 let secret=null; 
 let nonce=null; 
 let secretMode=false; 
-let committed=false;
+let committed=false; 
+let allHidden=false;
+
+function showToast(t,kind){const d=document.createElement("div");d.className=`toast ${kind||""}`;d.textContent=t;toasts.appendChild(d);setTimeout(()=>{d.remove()},2200)}
 
 function cardHTML(h){
   return `<div class="card" data-id="${h.id}">
@@ -43,7 +54,7 @@ function render(){
     if(flipped.has(id)) c.classList.add("off");
     if(secret===id) c.classList.add("is-secret");
     c.onclick=()=>{ 
-      if(secretMode){ selectSecret(id); } 
+      if(secretMode){ if(committed){showToast("Secret is locked", "bad"); return;} selectSecret(id); } 
       else { toggle(id); checkSubmitState(); } 
     };
   });
@@ -66,16 +77,20 @@ function toggle(id){
   if(el) el.classList.toggle("off",flipped.has(id));
 }
 
-function all(off){
+function setAll(off){
   const ids=heroes.map(h=>h.id);
   flipped = new Set(off?ids:[]);
   board.querySelectorAll(".card").forEach(c=> c.classList.toggle("off",off));
+  allHidden=off;
+  toggleAllBtn.textContent=allHidden?"Show All":"Hide All";
   checkSubmitState();
 }
 
-function reset(){
+function clearFlips(){
   flipped.clear();
   board.querySelectorAll(".card").forEach(c=> c.classList.remove("off"));
+  allHidden=false;
+  toggleAllBtn.textContent="Hide All";
   checkSubmitState();
 }
 
@@ -92,10 +107,7 @@ function checkSubmitState(){
 function drawSecret(){
   if(!secret){ secretSlot.textContent="Not selected"; lockSecretBtn.disabled=true; return; }
   const h=heroes.find(x=>x.id===secret);
-  secretSlot.innerHTML=`<div class="card" style="width:110px">
-    <div class="thumb"><img src="${h.img||("icons/"+h.slug+".png")}" /></div>
-    <div class="meta">${h.name}</div>
-  </div>`;
+  secretSlot.innerHTML=`<div class="card"><div class="thumb"><img src="${h.img||("icons/"+h.slug+".png")}"/></div><div class="meta">${h.name}</div></div>`;
 }
 
 function tenc(n){ return n.toString(16).padStart(2,"0"); }
@@ -108,11 +120,7 @@ function ensureSocket(){
   socket.on("joined", ({room})=>{ roomStatus.textContent=`Joined ${room}`; });
   socket.on("chat", m=>addMsg(m));
   socket.on("reveal:request", ()=>{ if(committed && secret && nonce) socket.emit("secret:reveal",{room:joinedRoom,secret,nonce}); });
-  socket.on("round:result", p=>{
-    const you = p.you.correct ? "You WON" : "You LOST";
-    const oppName = heroes.find(x=>x.id===p.opponent.secret)?.name || p.opponent.secret;
-    roomStatus.textContent=`${you}. Opponent's secret: ${oppName}`;
-  });
+  socket.on("round:result", p=>showResults(p));
   socket.on("round:reset", ()=>{
     committed=false; secret=null; nonce=null; drawSecret(); submitBtn.disabled=true;
     board.querySelectorAll(".card").forEach(c=>c.classList.remove("is-secret"));
@@ -155,32 +163,61 @@ function copyInvite(){
 }
 
 async function lockSecret(){
-  if(!joinedRoom) return;
-  if(!secret){ roomStatus.textContent="Pick a secret in Secret Mode"; return; }
+  if(!joinedRoom){showToast("Join a room first","bad");return;}
+  if(!secret){showToast("Pick a secret in Secret Mode","bad");return;}
   nonce = randHex(16);
   const commit = await sha256Hex(`${secret}:${nonce}`);
   ensureSocket();
   socket.emit("secret:commit",{room:joinedRoom,commit});
-  committed=true; roomStatus.textContent="Secret locked";
+  committed=true; secretMode=false; secretModeBtn.textContent="Secret Mode: OFF"; lockSecretBtn.disabled=true;
+  showToast("Secret locked","good");
 }
 
 function submitGuess(){
+  const onCount = heroes.length - flipped.size;
+  if(onCount!==1){showToast("Keep only 1 hero visible to submit","bad");return;}
   const id = onlyOn(); if(!id||!joinedRoom) return;
   ensureSocket(); socket.emit("guess:submit",{room:joinedRoom,guess:id});
-  roomStatus.textContent="Guess submitted. Waiting for opponent…";
+  showToast("Guess submitted. Waiting…");
+}
+
+function showResults(p){
+  const youOk = p.you.correct;
+  const oppName = heroes.find(x=>x.id===p.opponent.secret)?.name || p.opponent.secret;
+  const youName = heroes.find(x=>x.id===p.you.secret)?.name || p.you.secret;
+  const youGuessName = heroes.find(x=>x.id===p.you.guess)?.name || p.you.guess;
+  const oppGuessName = heroes.find(x=>x.id===p.opponent.guess)?.name || p.opponent.guess;
+
+  modalTitle.textContent = youOk ? "Victory" : "Defeat";
+  modalTitle.style.color = youOk ? "var(--good)" : "var(--bad)";
+
+  youCard.innerHTML = `<div class="pic"><img src="${imgFor(p.you.secret)}"/></div><div class="name">${youName}</div>`;
+  oppCard.innerHTML = `<div class="pic"><img src="${imgFor(p.opponent.secret)}"/></div><div class="name">${oppName}</div>`;
+  youGuess.textContent = `Your guess: ${youGuessName}`;
+  oppGuess.textContent = `Opponent guess: ${oppGuessName}`;
+
+  resultModal.classList.remove("hidden");
+}
+
+function imgFor(id){
+  const h=heroes.find(x=>x.id===id);
+  return h?(h.img||("icons/"+h.slug+".png")):"";
+}
+
+function closeModal(){
+  resultModal.classList.add("hidden");
 }
 
 fetch("/heroes.json").then(r=>r.json()).then(json=>{heroes=json; render();});
 
-resetBtn.onclick=reset;
-allOnBtn.onclick=()=>all(false);
-allOffBtn.onclick=()=>all(true);
+clearBtn.onclick=clearFlips;
+toggleAllBtn.onclick=()=>setAll(!allHidden);
 exportBtn.onclick=()=>{
   const off=[...flipped]; const on=heroes.map(h=>h.id).filter(x=>!flipped.has(x));
   if(navigator.clipboard) navigator.clipboard.writeText(JSON.stringify({off,on},null,2));
-  alert("State copied");
+  showToast("State copied","good");
 };
-secretModeBtn.onclick=()=>{ secretMode=!secretMode; secretModeBtn.textContent=secretMode?"Secret Mode: ON":"Secret Mode: OFF"; render(); };
+secretModeBtn.onclick=()=>{ if(committed){showToast("Secret is locked","bad");return;} secretMode=!secretMode; secretModeBtn.textContent=secretMode?"Secret Mode: ON":"Secret Mode: OFF"; };
 lockSecretBtn.onclick=lockSecret;
 submitBtn.onclick=submitGuess;
 
@@ -190,6 +227,9 @@ copyLinkBtn.onclick=copyInvite;
 
 chatSend.onclick=sendChat;
 chatText.addEventListener("keydown",e=>{if(e.key==="Enter") sendChat();});
+
+playAgainBtn.onclick=()=>{closeModal(); clearFlips();};
+closeModalBtn.onclick=closeModal;
 
 const urlRoom=new URLSearchParams(location.search).get("room");
 if(urlRoom){roomInput.value=urlRoom.toUpperCase(); join();}
