@@ -24,8 +24,7 @@
     <button id="toggleAllBtn">Hide All</button>
     <button id="secretModeBtn">Secret Mode: OFF</button>
     <button id="lockSecretBtn" disabled>Lock Secret</button>
-    <button id="submitBtn" class="cta" disabled>Submit Guess</button>
-    <button id="exportBtn">Export State</button>
+    <button id="submitBtn" class="cta">Submit Guess</button>
     <span class="hint">Private boards. Results reveal only after both submit.</span>
   </section>
 
@@ -70,7 +69,15 @@
   </div>
 </div>
 
-<div id="toasts"></div>
+<div id="alertModal" class="modal hidden">
+  <div class="modal-card">
+    <div class="modal-title">Heads up</div>
+    <div id="alertBody" class="mini-meta" style="margin-bottom:12px"></div>
+    <div class="modal-actions">
+      <button id="alertOkBtn" class="cta">OK</button>
+    </div>
+  </div>
+</div>
 
 <script src="/socket.io/socket.io.js"></script>
 <script src="/client.js"></script>

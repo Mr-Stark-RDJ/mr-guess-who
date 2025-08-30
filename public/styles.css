@@ -8,7 +8,7 @@ header{display:flex;justify-content:space-between;align-items:center;padding:14p
 .room button{background:var(--accent);color:#032314;border:0;padding:8px 12px;border-radius:10px;cursor:pointer;font-weight:700}
 #roomStatus{color:var(--muted);font-size:12px}
 
-main{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:16px;max-width:1280px;margin:16px auto;padding:0 16px}
+main{display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:16px;max-width:1280px;margin:16px auto;padding:0 16px}
 .controls{grid-column:1/-1;display:flex;align-items:center;gap:10px;padding:10px;background:var(--panel);border:1px solid var(--border);border-radius:14px}
 .controls button{background:var(--card);border:1px solid var(--border);color:var(--text);padding:8px 12px;border-radius:10px;cursor:pointer}
 .controls .cta{background:var(--accent);color:#032314;border:0;font-weight:800}
@@ -27,8 +27,9 @@ main{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:16px;max-width:1
 .side{grid-column:2/3;display:grid;gap:16px}
 .secret,.chat{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:12px}
 .title{font-weight:700;color:var(--accent);margin-bottom:8px}
-.secretSlot{height:120px;border:1px dashed var(--border);border-radius:12px;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:14px;overflow:hidden}
-.secretSlot .card{width:140px;max-width:90%}
+.secretSlot{min-height:160px;border:1px dashed var(--border);border-radius:12px;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:14px;padding:10px;overflow:visible}
+.secretSlot .card{width:160px;max-width:100%}
+
 .chatLog{height:260px;overflow:auto;border:1px solid var(--border);border-radius:12px;padding:8px;background:var(--card)}
 .msg{margin-bottom:8px}
 .msg .u{color:var(--accent);font-weight:700;margin-right:6px}
@@ -39,7 +40,7 @@ main{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:16px;max-width:1
 
 .modal{position:fixed;inset:0;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;z-index:40}
 .modal.hidden{display:none}
-.modal-card{width:min(680px,92vw);background:var(--panel);border:1px solid var(--border);border-radius:16px;padding:16px}
+.modal-card{width:min(720px,92vw);background:var(--panel);border:1px solid var(--border);border-radius:16px;padding:16px}
 .modal-title{font-weight:900;font-size:20px;margin-bottom:10px}
 .modal-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
 .modal-col{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:12px}
@@ -51,11 +52,6 @@ main{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:16px;max-width:1
 .mini-meta{color:var(--muted);margin-top:6px}
 .modal-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:12px}
 .modal-actions .cta{background:var(--accent);color:#032314;border:0;padding:10px 14px;border-radius:10px;font-weight:800}
-
-#toasts{position:fixed;top:14px;right:14px;display:grid;gap:8px;z-index:50}
-.toast{background:var(--panel);border:1px solid var(--border);color:var(--text);padding:8px 12px;border-radius:10px;box-shadow:0 6px 20px rgba(0,0,0,.3)}
-.toast.good{border-color:rgba(31,191,117,.6)}
-.toast.bad{border-color:rgba(255,100,100,.6)}
 
 @media(max-width:980px){
   main{grid-template-columns:1fr}
