@@ -4,43 +4,58 @@ const toggleAllBtn=document.getElementById("toggleAllBtn");
 const secretModeBtn=document.getElementById("secretModeBtn");
 const lockSecretBtn=document.getElementById("lockSecretBtn");
 const submitBtn=document.getElementById("submitBtn");
+const hintText=document.getElementById("hintText");
+
 const secretSlot=document.getElementById("secretSlot");
 const roomInput=document.getElementById("roomInput");
 const joinBtn=document.getElementById("joinBtn");
 const createBtn=document.getElementById("createBtn");
 const copyLinkBtn=document.getElementById("copyLinkBtn");
 const roomStatus=document.getElementById("roomStatus");
+
 const chatLog=document.getElementById("chatLog");
 const chatText=document.getElementById("chatText");
 const chatSend=document.getElementById("chatSend");
 const chatUser=document.getElementById("chatUser");
+const chatDot=document.getElementById("chatDot");
 
 const resultModal=document.getElementById("resultModal");
 const modalCard=document.getElementById("modalCard");
 const modalTitle=document.getElementById("modalTitle");
-const leftSub=document.getElementById("leftSub");
-const rightSub=document.getElementById("rightSub");
-const leftCard=document.getElementById("leftCard");
-const rightCard=document.getElementById("rightCard");
-const playAgainBtn=document.getElementById("playAgainBtn");
+const youSecret=document.getElementById("youSecret");
+const youPick=document.getElementById("youPick");
+const oppSecret=document.getElementById("oppSecret");
+const oppPick=document.getElementById("oppPick");
+const newGameBtn=document.getElementById("newGameBtn");
 const closeModalBtn=document.getElementById("closeModalBtn");
 
 const alertModal=document.getElementById("alertModal");
 const alertBody=document.getElementById("alertBody");
 const alertOkBtn=document.getElementById("alertOkBtn");
 
-let heroes=[]; 
-let flipped=new Set(); 
-let joinedRoom=""; 
-let socket=null; 
-let secret=null; 
-let nonce=null; 
-let secretMode=false; 
-let committed=false; 
+const nameModal=document.getElementById("nameModal");
+const nameInput=document.getElementById("nameInput");
+const saveNameBtn=document.getElementById("saveNameBtn");
+
+const scoreList=document.getElementById("scoreList");
+const playersOnline=document.getElementById("playersOnline");
+
+let heroes=[];
+let flipped=new Set();
+let joinedRoom="";
+let socket=null;
+let secret=null;
+let nonce=null;
+let secretMode=false;
+let committed=false;
 let allHidden=false;
+let myId=null;
+let myName=localStorage.getItem("rivals_name")||"";
 
 function openAlert(msg){alertBody.textContent=msg; alertModal.classList.remove("hidden");}
 function closeAlert(){alertModal.classList.add("hidden");}
+function openNameModal(){nameInput.value=myName||""; nameModal.classList.remove("hidden"); nameInput.focus();}
+function closeNameModal(){nameModal.classList.add("hidden");}
 
 function cardHTML(h){
   return `<div class="card" data-id="${h.id}">
@@ -114,14 +129,73 @@ async function sha256Hex(s){ const d=await crypto.subtle.digest("SHA-256", new T
 function ensureSocket(){
   if(socket) return;
   socket = io();
-  socket.on("joined", ({room})=>{ roomStatus.textContent=`Joined ${room}`; });
-  socket.on("chat", m=>addMsg(m));
-  socket.on("reveal:request", ()=>{ if(committed && secret && nonce) socket.emit("secret:reveal",{room:joinedRoom,secret,nonce}); });
+
+  socket.on("connect", ()=>{ myId = socket.id; });
+
+  socket.on("joined", ({room})=>{
+    roomStatus.textContent=`Joined ${room}`;
+    // Secret-mode ON by default on join; nudge lock button
+    secretMode=true;
+    secretModeBtn.textContent="Secret Mode: ON";
+    lockSecretBtn.classList.add("btn-pulse");
+    hintText.textContent="Pick a secret, then press Lock Secret to start.";
+    openAlert(`Joined room ${room}. Pick your secret and lock it.`);
+    // if name not set yet, ask like skribbl
+    if(!myName) openNameModal();
+    else socket.emit("name:set",{room:joinedRoom,name:myName});
+  });
+
+  socket.on("players", ({players, scores})=>{
+    renderScores(players, scores);
+  });
+
+  socket.on("presence", ({type,name})=>{
+    if(type==="join") openAlert(`${name} joined the game.`);
+    if(type==="leave") openAlert(`${name} left the game.`);
+    if(type==="name")  openAlert(`${name} is here.`);
+  });
+
+  socket.on("chat", m=>{
+    addMsg(m);
+    if(document.activeElement!==chatText && !nearBottom(chatLog)){
+      chatDot.classList.remove("hidden");
+    }
+  });
+
+  socket.on("reveal:request", ()=>{
+    if(committed && secret && nonce) socket.emit("secret:reveal",{room:joinedRoom,secret,nonce});
+  });
+
   socket.on("round:result", p=>showResults(p));
+
   socket.on("round:reset", ()=>{
     committed=false; secret=null; nonce=null; drawSecret();
     board.querySelectorAll(".card").forEach(c=>c.classList.remove("is-secret"));
+    // Prepare next round
+    secretMode=true;
+    secretModeBtn.textContent="Secret Mode: ON";
+    lockSecretBtn.disabled=true;
+    lockSecretBtn.classList.add("btn-pulse");
+    hintText.textContent="Pick a secret, then press Lock Secret to start.";
+    clearFlips();
   });
+
+  socket.on("score:update", ({scores})=>{
+    // server already pushes players regularly; we just keep list fresh on that event too
+    socket.emit("noop",""); // no-op
+  });
+}
+
+function renderScores(players, scores){
+  playersOnline.textContent = `(${players.filter(p=>p.online).length} online)`;
+  scoreList.innerHTML = players.map(p=>{
+    const me = p.id===myId ? "me" : "";
+    const pts = scores[p.id] || 0;
+    return `<li class="scoreItem ${me}">
+      <span class="name"><span class="status ${p.online?'on':'off'}"></span>${p.name || 'Player'}${me?' (you)':''}</span>
+      <span class="pts">${pts}</span>
+    </li>`;
+  }).join("");
 }
 
 function addMsg(m){
@@ -132,9 +206,11 @@ function addMsg(m){
   chatLog.appendChild(e); chatLog.scrollTop=chatLog.scrollHeight;
 }
 
+function nearBottom(el){ return (el.scrollHeight - el.scrollTop - el.clientHeight) < 6; }
+
 function sendChat(){
   const text=chatText.value.trim(); if(!text||!joinedRoom) return;
-  const user=chatUser.value.trim()||"Player";
+  const user=chatUser.value.trim()||myName||"Player";
   socket.emit("chat",{room:joinedRoom,user,text});
   chatText.value="";
 }
@@ -167,7 +243,9 @@ async function lockSecret(){
   ensureSocket();
   socket.emit("secret:commit",{room:joinedRoom,commit});
   committed=true; secretMode=false; secretModeBtn.textContent="Secret Mode: OFF"; lockSecretBtn.disabled=true;
-  roomStatus.textContent="Secret locked. Wait for both guesses.";
+  lockSecretBtn.classList.remove("btn-pulse");
+  hintText.textContent="Secret locked. Hide characters and submit your guess.";
+  roomStatus.textContent="Secret locked. Waiting for both guesses.";
 }
 
 function submitGuess(){
@@ -184,11 +262,11 @@ function showResults(p){
   modalCard.classList.toggle("lose", !youOk);
   modalTitle.textContent = youOk ? "Victory" : "Defeat";
 
-  leftSub.textContent = "Opponent’s Secret";
-  rightSub.textContent = "Your Pick";
+  youSecret.innerHTML = `<div class="pic"><img src="${imgFor(p.you.secret)}"/></div><div class="name">Your secret: ${nameFor(p.you.secret)}</div>`;
+  oppSecret.innerHTML = `<div class="pic"><img src="${imgFor(p.opponent.secret)}"/></div><div class="name">Opponent’s secret: ${nameFor(p.opponent.secret)}</div>`;
 
-  leftCard.innerHTML = `<div class="pic"><img src="${imgFor(p.opponent.secret)}"/></div><div class="name">${nameFor(p.opponent.secret)}</div>`;
-  rightCard.innerHTML = `<div class="pic"><img src="${imgFor(p.you.guess)}"/></div><div class="name">${nameFor(p.you.guess)}</div>`;
+  youPick.textContent = `Your pick: ${nameFor(p.you.guess)}`;
+  oppPick.textContent = `Opponent pick: ${nameFor(p.opponent.guess)}`;
 
   resultModal.classList.remove("hidden");
 }
@@ -196,7 +274,7 @@ function showResults(p){
 function nameFor(id){const h=heroes.find(x=>x.id===id); return h?h.name:id;}
 function imgFor(id){const h=heroes.find(x=>x.id===id); return h?(h.img||("icons/"+h.slug+".png")):"";}
 
-function closeModal(){resultModal.classList.add("hidden");}
+function closeResults(){ resultModal.classList.add("hidden"); }
 
 fetch("/heroes.json").then(r=>r.json()).then(json=>{heroes=json; render();});
 
@@ -212,10 +290,26 @@ copyLinkBtn.onclick=copyInvite;
 
 chatSend.onclick=sendChat;
 chatText.addEventListener("keydown",e=>{if(e.key==="Enter") sendChat();});
+chatText.addEventListener("focus",()=>chatDot.classList.add("hidden"));
+chatLog.addEventListener("scroll",()=>{ if(nearBottom(chatLog)) chatDot.classList.add("hidden"); });
 
-playAgainBtn.onclick=()=>{closeModal(); clearFlips();};
-closeModalBtn.onclick=closeModal;
+newGameBtn.onclick=()=>{
+  if(joinedRoom && socket){ socket.emit("round:new",{room:joinedRoom}); }
+  closeResults();
+};
+closeModalBtn.onclick=closeResults;
+
 alertOkBtn.onclick=closeAlert;
+
+saveNameBtn.onclick=()=>{
+  const n = nameInput.value.trim() || "Player";
+  myName = n.slice(0,20);
+  localStorage.setItem("rivals_name", myName);
+  chatUser.value = myName;
+  closeNameModal();
+  if(joinedRoom && socket) socket.emit("name:set",{room:joinedRoom,name:myName});
+};
 
 const urlRoom=new URLSearchParams(location.search).get("room");
 if(urlRoom){roomInput.value=urlRoom.toUpperCase(); join();}
+if(myName) chatUser.value=myName;
