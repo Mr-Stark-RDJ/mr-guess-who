@@ -1,90 +1,97 @@
 <!doctype html>
-<html>
+<html lang="en">
 <head>
-<meta charset="utf-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>Marvel Rivals Guess-Who</title>
-<link rel="stylesheet" href="/styles.css"/>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Rivals Guess-Who</title>
+<link rel="stylesheet" href="/styles.css?v=27">
 </head>
 <body>
-<header>
+<header class="topbar">
   <div class="brand">Rivals Guess-Who</div>
   <div class="room">
-    <input id="roomInput" placeholder="Room code"/>
+    <input id="roomInput" class="roomInput" placeholder="Room code">
     <button id="createBtn">Create</button>
     <button id="joinBtn">Join</button>
     <button id="copyLinkBtn">Copy Link</button>
-    <span id="roomStatus"></span>
+    <span id="roomStatus" class="roomStatus"></span>
   </div>
 </header>
 
-<main>
-  <section class="controls">
+<section class="controls">
+  <div class="left">
     <button id="clearBtn">Clear</button>
     <button id="toggleAllBtn">Hide All</button>
     <button id="secretModeBtn">Secret Mode: OFF</button>
-    <button id="lockSecretBtn" disabled>Lock Secret</button>
-    <button id="submitBtn" class="cta">Submit Guess</button>
-    <span class="hint">Private boards. Results reveal only after both submit.</span>
+    <button id="lockSecretBtn">Lock Secret</button>
+    <button id="submitBtn" class="primary">Submit Guess</button>
+  </div>
+  <div class="right">
+    <div class="tip">Private boards. Results reveal only after both submit.</div>
+  </div>
+</section>
+
+<main class="wrap">
+  <section class="boardWrap">
+    <div id="board" class="board"></div>
   </section>
 
-  <section class="board" id="board"></section>
+  <aside class="side">
+    <h3>Your Secret</h3>
+    <div id="secretSlot" class="secretSlot">Not selected</div>
 
-  <section class="side">
-    <div class="secret">
-      <div class="title">Your Secret</div>
-      <div id="secretSlot" class="secretSlot">Not selected</div>
+    <h3 class="mt">Scoreboard <span id="playersOnline"></span></h3>
+    <ul id="scoreList" class="scores"></ul>
+
+    <h3 class="mt">Q&A <span id="chatDot" class="dot hidden"></span></h3>
+    <div id="chatLog" class="chatLog"></div>
+    <div class="chatBar">
+      <input id="chatUser" class="nameInput" placeholder="Name">
+      <input id="chatText" class="chatInput" placeholder="Ask a question or answer">
+      <button id="chatSend">Send</button>
     </div>
-    <div class="chat">
-      <div class="title">Q&A</div>
-      <div id="chatLog" class="chatLog"></div>
-      <div class="chatInput">
-        <input id="chatUser" placeholder="Name"/>
-        <input id="chatText" placeholder="Ask a question or answer"/>
-        <button id="chatSend">Send</button>
-      </div>
-    </div>
-  </section>
+  </aside>
 </main>
 
 <div id="resultModal" class="modal hidden">
-  <div class="modal-card" id="modalCard">
-    <div class="modal-title" id="modalTitle"></div>
-    <div class="modal-grid">
-      <div class="modal-col">
-        <div class="modal-sub" id="leftSub"></div>
-        <div id="leftCard" class="mini-card"></div>
+  <div id="modalCard" class="modalCard">
+    <div class="modalHead"><div id="modalTitle" class="modalTitle">Result</div></div>
+    <div class="resultGrid">
+      <div class="panel">
+        <div id="youSecret" class="secretCell"></div>
+        <div id="youPick" class="pickCell"></div>
       </div>
-      <div class="modal-col">
-        <div class="modal-sub" id="rightSub"></div>
-        <div id="rightCard" class="mini-card"></div>
+      <div class="panel">
+        <div id="oppSecret" class="secretCell"></div>
+        <div id="oppPick" class="pickCell"></div>
       </div>
     </div>
-    <div class="modal-actions">
-      <button id="playAgainBtn" class="cta">Play Again</button>
-      <button id="closeModalBtn" class="sec">Close</button>
+    <div class="modalActions">
+      <button id="newGameBtn" class="primary">Play Again</button>
+      <button id="closeModalBtn">Close</button>
     </div>
   </div>
 </div>
 
 <div id="alertModal" class="modal hidden">
-  <div class="modal-card">
-    <div class="modal-title">Heads up</div>
-    <div id="alertBody" class="mini-meta" style="margin-bottom:12px"></div>
-    <div class="modal-actions">
-      <button id="alertOkBtn" class="cta">OK</button>
-    </div>
+  <div class="alertCard">
+    <div id="alertBody" class="alertBody">Heads up</div>
+    <div class="modalActions"><button id="alertOkBtn" class="primary">OK</button></div>
   </div>
 </div>
 
+<div id="nameModal" class="modal hidden">
+  <div class="nameCard">
+    <div class="modalTitle">Enter a name</div>
+    <input id="nameInput" class="chatInput" maxlength="20" placeholder="Player">
+    <div class="modalActions"><button id="saveNameBtn" class="primary">Save</button></div>
+  </div>
+</div>
 
 <div id="toasts" class="toasts"></div>
-<button id="chatFloat" class="chat-float hidden">New</button>
+<button id="chatFloat" class="chat-float hidden">Chat</button>
 
 <script src="/socket.io/socket.io.js"></script>
-<script src="/client.js?v=26"></script>
-
-<script src="/socket.io/socket.io.js"></script>
-<script src="/client.js"></script>
+<script src="/client.js?v=27"></script>
 </body>
 </html>

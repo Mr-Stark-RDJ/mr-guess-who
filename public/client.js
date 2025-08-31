@@ -42,7 +42,7 @@ let myName=localStorage.getItem("rivals_name")||"";
 let unread=0;
 
 function toast(msg,type="info",ms=2400){
-  if(!toasts) return;
+  if(!toasts)return;
   const t=document.createElement("div");
   t.className=`toast ${type}`;
   t.textContent=msg;
@@ -123,7 +123,7 @@ function ensureSocket(){
     secretMode=true;
     secretModeBtn.textContent="Secret Mode: ON";
     lockSecretBtn.classList.add("btn-pulse");
-    hintText.textContent="Pick a secret, then press Lock Secret to start.";
+    hintText&& (hintText.textContent="Pick a secret, then press Lock Secret to start.");
     toast(`Joined ${room}`,"info",1800);
     if(!myName)nameModal.classList.remove("hidden");else socket.emit("name:set",{room:joinedRoom,name:myName});
   });
@@ -134,16 +134,18 @@ function ensureSocket(){
     if(id===myId)return;
     const m=type==="join"?"joined":(type==="leave"?"left":"is here");
     toast(`${name} ${m}`,"info",1800);
-    roomStatus.textContent=`${name} ${m}`;
-    setTimeout(()=>roomStatus.textContent=`Joined ${joinedRoom}`,1800);
   });
 
   socket.on("chat",m=>{
-    addMsg(m);
-    const show=(document.activeElement!==chatText)&&!nearBottom(chatLog);
-    if(show){
+    const wasBottom=nearBottom(chatLog);
+    const visible=isInView(chatLog);
+    addMsg(m,wasBottom&&visible);
+    const need=(!visible||!wasBottom||document.activeElement!==chatText);
+    if(need){
       chatDot.classList.remove("hidden");
-      unread++; chatFloat.textContent=`New (${unread})`; chatFloat.classList.remove("hidden");
+      unread++;
+      chatFloat.textContent=`Chat (${unread})`;
+      chatFloat.classList.remove("hidden");
       toast(`${m.user||"Player"}: ${m.text}`,"chat",3000);
     }
   });
@@ -156,7 +158,7 @@ function ensureSocket(){
     board.querySelectorAll(".card").forEach(c=>c.classList.remove("is-secret"));
     secretMode=true;secretModeBtn.textContent="Secret Mode: ON";
     lockSecretBtn.disabled=true;lockSecretBtn.classList.add("btn-pulse");
-    hintText.textContent="Pick a secret, then press Lock Secret to start.";
+    hintText&& (hintText.textContent="Pick a secret, then press Lock Secret to start.");
     clearFlips();
   });
 }
@@ -172,18 +174,20 @@ function renderScores(players,scores){
   }).join("");
 }
 
-function addMsg(m){
+function addMsg(m,scroll){
   const d=new Date(m.ts||Date.now());
   const e=document.createElement("div");
   e.className="msg";
   e.innerHTML=`<span class='u'>${m.user||"Player"}</span> <span class='t'>${m.text}</span><span class='time' style='float:right;color:#79cda7;font-size:10px'>${d.toLocaleTimeString()}</span>`;
-  chatLog.appendChild(e);chatLog.scrollTop=chatLog.scrollHeight;
+  chatLog.appendChild(e);
+  if(scroll)chatLog.scrollTop=chatLog.scrollHeight;
 }
 const nearBottom=el=>(el.scrollHeight-el.scrollTop-el.clientHeight)<6;
+function isInView(el){const r=el.getBoundingClientRect();const h=window.innerHeight||document.documentElement.clientHeight;return r.top>=0&&r.bottom<=h}
 
 function join(){const r=(roomInput.value||"").trim().toUpperCase();if(!r)return;ensureSocket();joinedRoom=r;socket.emit("join",r);history.replaceState(null,"",`/?room=${joinedRoom}`)}
 function create(){const s="ABCDEFGHJKLMNPQRSTUVWXYZ23456789";let out="";for(let i=0;i<6;i++)out+=s[Math.floor(Math.random()*s.length)];roomInput.value=out;join();copyInvite()}
-function copyInvite(){if(!joinedRoom)return;const url=`${location.origin}/?room=${joinedRoom}`;navigator.clipboard?.writeText(url);roomStatus.textContent="Link copied";setTimeout(()=>roomStatus.textContent=`Joined ${joinedRoom}`,900)}
+function copyInvite(){if(!joinedRoom)return;const url=`${location.origin}/?room=${joinedRoom}`;navigator.clipboard?.writeText(url);roomStatus.textContent=`Joined ${joinedRoom}`;toast("Link copied","info",1200)}
 
 async function lockSecret(){
   if(!joinedRoom){pushAlert("Join a room first.");return}
@@ -192,8 +196,7 @@ async function lockSecret(){
   const commit=await sha256Hex(`${secret}:${nonce}`);
   ensureSocket();socket.emit("secret:commit",{room:joinedRoom,commit});
   committed=true;secretMode=false;secretModeBtn.textContent="Secret Mode: OFF";lockSecretBtn.disabled=true;lockSecretBtn.classList.remove("btn-pulse");
-  hintText.textContent="Secret locked. Hide characters and submit your guess.";
-  roomStatus.textContent="Secret locked. Waiting for both guesses.";
+  roomStatus.textContent=`Joined ${joinedRoom}`;
 }
 
 function submitGuess(){
@@ -201,7 +204,7 @@ function submitGuess(){
   if(onCount!==1){pushAlert("Keep only one hero visible to submit your guess.");return}
   const id=onlyOn();if(!id||!joinedRoom){pushAlert("Join a room first.");return}
   ensureSocket();socket.emit("guess:submit",{room:joinedRoom,guess:id});
-  roomStatus.textContent="Guess submitted. Waiting…";
+  toast("Guess submitted","info",1200);
 }
 
 function showResults(p){
@@ -236,7 +239,7 @@ chatText.addEventListener("keydown",e=>{if(e.key==="Enter")chatSend.onclick()});
 chatText.addEventListener("focus",()=>{chatDot.classList.add("hidden");unread=0;chatFloat.classList.add("hidden")});
 chatLog.addEventListener("scroll",()=>{if(nearBottom(chatLog)){chatDot.classList.add("hidden");unread=0;chatFloat.classList.add("hidden")}});
 
-chatFloat.onclick=()=>{unread=0;chatFloat.classList.add("hidden");chatDot.classList.add("hidden");chatLog.scrollTop=chatLog.scrollHeight;chatText.focus()};
+chatFloat.onclick=()=>{unread=0;chatFloat.classList.add("hidden");chatDot.classList.add("hidden");chatLog.scrollIntoView({behavior:"smooth",block:"end"});chatText.focus()};
 
 newGameBtn.onclick=()=>{if(joinedRoom&&socket)socket.emit("round:new",{room:joinedRoom});closeResults()};
 closeModalBtn.onclick=closeResults;
