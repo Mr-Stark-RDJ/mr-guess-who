@@ -52,15 +52,38 @@ let allHidden=false;
 let myId=null;
 let myName=localStorage.getItem("rivals_name")||"";
 
-function openAlert(msg){alertBody.textContent=msg; alertModal.classList.remove("hidden");}
-function closeAlert(){alertModal.classList.add("hidden");}
-function openNameModal(){nameInput.value=myName||""; nameModal.classList.remove("hidden"); nameInput.focus();}
-function closeNameModal(){nameModal.classList.add("hidden");}
+// ---------- Alert queue (fix for “OK does nothing”) ----------
+let alertQueue=[], alertOpen=false;
+function pushAlert(msg){
+  if(!msg) return;
+  alertQueue.push(msg);
+  if(!alertOpen) showNextAlert();
+}
+function showNextAlert(){
+  const next = alertQueue.shift();
+  if(next){
+    alertBody.textContent = next;
+    alertModal.classList.remove("hidden");
+    alertOpen = true;
+  }else{
+    alertModal.classList.add("hidden");
+    alertOpen = false;
+  }
+}
+if(alertOkBtn){
+  alertOkBtn.onclick = showNextAlert;
+  alertModal.addEventListener("click",e=>{ if(e.target===alertModal) showNextAlert(); });
+  document.addEventListener("keydown",e=>{
+    if(alertOpen && (e.key==="Enter"||e.key==="Escape")) showNextAlert();
+  });
+}
+// -------------------------------------------------------------
 
 function cardHTML(h){
   return `<div class="card" data-id="${h.id}">
     <div class="thumb">
-      <img src="${h.img||("icons/"+h.slug+".png")}" alt="${h.name}" onerror="this.style.display='none';this.nextElementSibling.style.display='grid'"/>
+      <img src="${h.img||("icons/"+h.slug+".png")}" alt="${h.name}"
+           onerror="this.style.display='none';this.nextElementSibling.style.display='grid'"/>
       <div class="fallback" style="display:none">${h.name.split(" ").map(x=>x[0]).slice(0,2).join("")}</div>
     </div>
     <div class="meta">${h.name}</div>
@@ -73,9 +96,9 @@ function render(){
     const id=c.dataset.id;
     if(flipped.has(id)) c.classList.add("off");
     if(secret===id) c.classList.add("is-secret");
-    c.onclick=()=>{ 
-      if(secretMode){ if(committed){openAlert("Secret is locked."); return;} selectSecret(id); } 
-      else { toggle(id); } 
+    c.onclick=()=>{
+      if(secretMode){ if(committed){pushAlert("Secret is locked."); return;} selectSecret(id); }
+      else { toggle(id); }
     };
   });
   drawSecret();
@@ -89,13 +112,11 @@ function selectSecret(id){
   drawSecret();
   lockSecretBtn.disabled=false;
 }
-
 function toggle(id){
   if(flipped.has(id)) flipped.delete(id); else flipped.add(id);
   const el=board.querySelector(`.card[data-id="${id}"]`);
   if(el) el.classList.toggle("off",flipped.has(id));
 }
-
 function setAll(off){
   const ids=heroes.map(h=>h.id);
   flipped = new Set(off?ids:[]);
@@ -103,19 +124,13 @@ function setAll(off){
   allHidden=off;
   toggleAllBtn.textContent=allHidden?"Show All":"Hide All";
 }
-
 function clearFlips(){
   flipped.clear();
   board.querySelectorAll(".card").forEach(c=> c.classList.remove("off"));
   allHidden=false;
   toggleAllBtn.textContent="Hide All";
 }
-
-function onlyOn(){
-  for(const h of heroes){ if(!flipped.has(h.id)) return h.id; }
-  return null;
-}
-
+function onlyOn(){ for(const h of heroes){ if(!flipped.has(h.id)) return h.id; } return null; }
 function drawSecret(){
   if(!secret){ secretSlot.textContent="Not selected"; lockSecretBtn.disabled=true; return; }
   const h=heroes.find(x=>x.id===secret);
@@ -134,25 +149,26 @@ function ensureSocket(){
 
   socket.on("joined", ({room})=>{
     roomStatus.textContent=`Joined ${room}`;
-    // Secret-mode ON by default on join; nudge lock button
+    // Secret-mode ON by default; pulse "Lock Secret"
     secretMode=true;
     secretModeBtn.textContent="Secret Mode: ON";
     lockSecretBtn.classList.add("btn-pulse");
     hintText.textContent="Pick a secret, then press Lock Secret to start.";
-    openAlert(`Joined room ${room}. Pick your secret and lock it.`);
-    // if name not set yet, ask like skribbl
+    pushAlert(`Joined room ${room}. Pick your secret and lock it.`);
     if(!myName) openNameModal();
     else socket.emit("name:set",{room:joinedRoom,name:myName});
   });
 
-  socket.on("players", ({players, scores})=>{
-    renderScores(players, scores);
+  // De-duplicate & soften presence updates (no blocking modal)
+  socket.on("presence", ({type,id,name})=>{
+    if(id===myId) return; // ignore our own presence
+    const msg = type==="join" ? "joined" : (type==="leave" ? "left" : "is here");
+    roomStatus.textContent = `${name} ${msg}.`;
+    setTimeout(()=>{ roomStatus.textContent=`Joined ${joinedRoom}`; }, 1800);
   });
 
-  socket.on("presence", ({type,name})=>{
-    if(type==="join") openAlert(`${name} joined the game.`);
-    if(type==="leave") openAlert(`${name} left the game.`);
-    if(type==="name")  openAlert(`${name} is here.`);
+  socket.on("players", ({players, scores})=>{
+    renderScores(players, scores);
   });
 
   socket.on("chat", m=>{
@@ -171,18 +187,13 @@ function ensureSocket(){
   socket.on("round:reset", ()=>{
     committed=false; secret=null; nonce=null; drawSecret();
     board.querySelectorAll(".card").forEach(c=>c.classList.remove("is-secret"));
-    // Prepare next round
+    // Prep next round
     secretMode=true;
     secretModeBtn.textContent="Secret Mode: ON";
     lockSecretBtn.disabled=true;
     lockSecretBtn.classList.add("btn-pulse");
     hintText.textContent="Pick a secret, then press Lock Secret to start.";
     clearFlips();
-  });
-
-  socket.on("score:update", ({scores})=>{
-    // server already pushes players regularly; we just keep list fresh on that event too
-    socket.emit("noop",""); // no-op
   });
 }
 
@@ -205,7 +216,6 @@ function addMsg(m){
   e.innerHTML=`<span class='u'>${m.user||"Player"}</span> <span class='t'>${m.text}</span><span class='time' style='float:right;color:#79cda7;font-size:10px'>${d.toLocaleTimeString()}</span>`;
   chatLog.appendChild(e); chatLog.scrollTop=chatLog.scrollHeight;
 }
-
 function nearBottom(el){ return (el.scrollHeight - el.scrollTop - el.clientHeight) < 6; }
 
 function sendChat(){
@@ -220,13 +230,11 @@ function join(){
   ensureSocket(); joinedRoom=r; socket.emit("join",r);
   history.replaceState(null,"",`/?room=${joinedRoom}`);
 }
-
 function create(){
   const s="ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
   let out=""; for(let i=0;i<6;i++) out+=s[Math.floor(Math.random()*s.length)];
   roomInput.value=out; join(); copyInvite();
 }
-
 function copyInvite(){
   if(!joinedRoom) return;
   const url=`${location.origin}/?room=${joinedRoom}`;
@@ -236,8 +244,8 @@ function copyInvite(){
 }
 
 async function lockSecret(){
-  if(!joinedRoom){openAlert("Join a room first.");return;}
-  if(!secret){openAlert("Pick a secret in Secret Mode.");return;}
+  if(!joinedRoom){pushAlert("Join a room first.");return;}
+  if(!secret){pushAlert("Pick a secret in Secret Mode.");return;}
   nonce = randHex(16);
   const commit = await sha256Hex(`${secret}:${nonce}`);
   ensureSocket();
@@ -250,8 +258,8 @@ async function lockSecret(){
 
 function submitGuess(){
   const onCount = heroes.length - flipped.size;
-  if(onCount!==1){openAlert("Keep only one hero visible to submit your guess.");return;}
-  const id = onlyOn(); if(!id||!joinedRoom){openAlert("Join a room first.");return;}
+  if(onCount!==1){pushAlert("Keep only one hero visible to submit your guess.");return;}
+  const id = onlyOn(); if(!id||!joinedRoom){pushAlert("Join a room first.");return;}
   ensureSocket(); socket.emit("guess:submit",{room:joinedRoom,guess:id});
   roomStatus.textContent="Guess submitted. Waiting…";
 }
@@ -270,17 +278,15 @@ function showResults(p){
 
   resultModal.classList.remove("hidden");
 }
-
 function nameFor(id){const h=heroes.find(x=>x.id===id); return h?h.name:id;}
 function imgFor(id){const h=heroes.find(x=>x.id===id); return h?(h.img||("icons/"+h.slug+".png")):"";}
-
 function closeResults(){ resultModal.classList.add("hidden"); }
 
 fetch("/heroes.json").then(r=>r.json()).then(json=>{heroes=json; render();});
 
 clearBtn.onclick=clearFlips;
 toggleAllBtn.onclick=()=>setAll(!allHidden);
-secretModeBtn.onclick=()=>{ if(committed){openAlert("Secret is locked.");return;} secretMode=!secretMode; secretModeBtn.textContent=secretMode?"Secret Mode: ON":"Secret Mode: OFF"; };
+secretModeBtn.onclick=()=>{ if(committed){pushAlert("Secret is locked.");return;} secretMode=!secretMode; secretModeBtn.textContent=secretMode?"Secret Mode: ON":"Secret Mode: OFF"; };
 lockSecretBtn.onclick=lockSecret;
 submitBtn.onclick=submitGuess;
 
@@ -299,14 +305,12 @@ newGameBtn.onclick=()=>{
 };
 closeModalBtn.onclick=closeResults;
 
-alertOkBtn.onclick=closeAlert;
-
 saveNameBtn.onclick=()=>{
   const n = nameInput.value.trim() || "Player";
   myName = n.slice(0,20);
   localStorage.setItem("rivals_name", myName);
   chatUser.value = myName;
-  closeNameModal();
+  nameModal.classList.add("hidden");
   if(joinedRoom && socket) socket.emit("name:set",{room:joinedRoom,name:myName});
 };
 
