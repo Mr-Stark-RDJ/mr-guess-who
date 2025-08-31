@@ -1,174 +1,165 @@
-import express from "express";
-import http from "http";
-import { Server } from "socket.io";
-import path from "path";
-import { fileURLToPath } from "url";
-import crypto from "crypto";
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+const path = require("path");
+const express = require("express");
+const http = require("http");
+const { Server } = require("socket.io");
+const crypto = require("crypto");
 
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server, { cors: { origin: "*" } });
 
-app.use(
-  express.static(path.join(__dirname, "public"), {
-    etag: false,
-    lastModified: false,
-    maxAge: 0,
-    setHeaders: res => res.setHeader("Cache-Control", "no-store")
-  })
-);
+app.use(express.static(path.join(__dirname, "public")));
 
-app.get("/health", (_, res) => res.send("ok"));
+function sha256Hex(s){
+  return crypto.createHash("sha256").update(s).digest("hex");
+}
 
 const rooms = new Map();
+// room shape:
+// {
+//   code,
+//   players: Map<socketId,{id,name,online:true}>,
+//   scores: Map<socketId,number>,
+//   commits: Map<socketId,string>,
+//   secrets: Map<socketId,string>,
+//   nonces: Map<socketId,string>,
+//   guesses: Map<socketId,string>,
+//   submitted: Set<socketId>,
+//   revealed: Set<socketId>,
+//   round: number,
+//   resultEmittedFor: Set<number>
+// }
 
-function getState(room) {
-  if (!rooms.has(room)) {
-    rooms.set(room, {
-      players: new Map(),
-      commits: new Map(),
-      reveals: new Map(),
-      guesses: new Map(),
-      scores: new Map()
+function getRoom(code){
+  code = code.toUpperCase();
+  if(!rooms.has(code)){
+    rooms.set(code,{
+      code,
+      players:new Map(),
+      scores:new Map(),
+      commits:new Map(),
+      secrets:new Map(),
+      nonces:new Map(),
+      guesses:new Map(),
+      submitted:new Set(),
+      revealed:new Set(),
+      round:1,
+      resultEmittedFor:new Set()
     });
   }
-  return rooms.get(room);
+  return rooms.get(code);
 }
 
-function playersList(state) {
-  return Array.from(state.players.values()).map(p => ({
-    id: p.id,
-    name: p.name || "Player",
-    online: p.online
-  }));
+function emitPlayers(rm){
+  const players = Array.from(rm.players.values());
+  const scores = Object.fromEntries(Array.from(rm.scores.entries()));
+  io.to(rm.code).emit("players",{players,scores});
 }
 
-function emitPlayers(room) {
-  const s = getState(room);
-  io.to(room).emit("players", {
-    players: playersList(s),
-    scores: Object.fromEntries(s.scores)
-  });
-}
+io.on("connection",(socket)=>{
+  let myRoom = null;
 
-function maybeResolve(room) {
-  const s = getState(room);
-  const ids = Array.from(s.players.keys());
-  if (ids.length < 2) return;
-  const bothGuessed = ids.every(id => s.guesses.has(id));
-  const bothRevealed = ids.every(id => s.reveals.has(id));
-  if (bothGuessed && !bothRevealed) io.to(room).emit("reveal:request");
-  if (bothGuessed && bothRevealed) resolveRoom(room);
-}
-
-function resolveRoom(room) {
-  const s = getState(room);
-  const ids = Array.from(s.players.keys());
-  if (ids.length < 2) return;
-  const [a, b] = ids;
-
-  const aRev = s.reveals.get(a);
-  const bRev = s.reveals.get(b);
-  const aCom = s.commits.get(a);
-  const bCom = s.commits.get(b);
-
-  const aHash = crypto.createHash("sha256").update(`${aRev.secret}:${aRev.nonce}`).digest("hex");
-  const bHash = crypto.createHash("sha256").update(`${bRev.secret}:${bRev.nonce}`).digest("hex");
-
-  if (aCom !== aHash || bCom !== bHash) return;
-
-  const aGuess = s.guesses.get(a);
-  const bGuess = s.guesses.get(b);
-
-  const aOk = aGuess === bRev.secret;
-  const bOk = bGuess === aRev.secret;
-
-  s.scores.set(a, (s.scores.get(a) || 0) + (aOk ? 1 : 0));
-  s.scores.set(b, (s.scores.get(b) || 0) + (bOk ? 1 : 0));
-
-  io.to(a).emit("round:result", {
-    you: { secret: aRev.secret, guess: aGuess, correct: aOk },
-    opponent: { secret: bRev.secret, guess: bGuess, correct: bOk }
-  });
-  io.to(b).emit("round:result", {
-    you: { secret: bRev.secret, guess: bGuess, correct: bOk },
-    opponent: { secret: aRev.secret, guess: aGuess, correct: aOk }
+  socket.on("join",(code)=>{
+    myRoom = getRoom(code);
+    socket.join(myRoom.code);
+    myRoom.players.set(socket.id,{id:socket.id,name:"Player",online:true});
+    if(!myRoom.scores.has(socket.id)) myRoom.scores.set(socket.id,0);
+    socket.emit("joined",{room:myRoom.code});
+    io.to(myRoom.code).emit("presence",{type:"join",id:socket.id,name:myRoom.players.get(socket.id).name});
+    emitPlayers(myRoom);
   });
 
-  emitPlayers(room);
-}
-
-io.on("connection", socket => {
-  let room = "";
-  let name = "";
-
-  socket.on("join", r => {
-    room = String(r || "").toUpperCase();
-    if (!room) return;
-    socket.join(room);
-    const s = getState(room);
-    s.players.set(socket.id, { id: socket.id, name: name || "Player", online: true });
-    socket.emit("joined", { room });
-    socket.to(room).emit("presence", { type: "join", id: socket.id, name: name || "Player" });
-    emitPlayers(room);
+  socket.on("name:set",({room,name})=>{
+    const rm = getRoom(room);
+    const p = rm.players.get(socket.id);
+    if(p){ p.name = String(name||"Player").slice(0,20); emitPlayers(rm); }
   });
 
-  socket.on("name:set", ({ room: r, name: n }) => {
-    if (!room || r !== room) return;
-    name = String(n || "Player").slice(0, 20);
-    const s = getState(room);
-    const p = s.players.get(socket.id);
-    if (p) p.name = name;
-    emitPlayers(room);
+  socket.on("chat",({room,user,text})=>{
+    const rm = getRoom(room);
+    io.to(rm.code).emit("chat",{user,text,ts:Date.now()});
   });
 
-  socket.on("chat", m => {
-    if (!room) return;
-    io.to(room).emit("chat", { user: m.user, text: m.text, ts: Date.now() });
+  socket.on("secret:commit",({room,commit})=>{
+    const rm = getRoom(room);
+    rm.commits.set(socket.id,commit);
+    rm.secrets.delete(socket.id);
+    rm.nonces.delete(socket.id);
+    rm.revealed.delete(socket.id);
   });
 
-  socket.on("secret:commit", ({ room: r, commit }) => {
-    if (!room || r !== room) return;
-    const s = getState(room);
-    s.commits.set(socket.id, commit);
-    maybeResolve(room);
+  socket.on("secret:reveal",({room,secret,nonce})=>{
+    const rm = getRoom(room);
+    const commit = rm.commits.get(socket.id);
+    if(!commit) return;
+    const ok = sha256Hex(`${secret}:${nonce}`) === commit;
+    if(!ok) return;
+    rm.secrets.set(socket.id,secret);
+    rm.nonces.set(socket.id,nonce);
+    rm.revealed.add(socket.id);
+    maybeResult(rm);
   });
 
-  socket.on("secret:reveal", ({ room: r, secret, nonce }) => {
-    if (!room || r !== room) return;
-    const s = getState(room);
-    s.reveals.set(socket.id, { secret, nonce });
-    maybeResolve(room);
+  socket.on("guess:submit",({room,guess})=>{
+    const rm = getRoom(room);
+    if(rm.submitted.has(socket.id)) return; // prevent double-submits → double points
+    rm.guesses.set(socket.id,guess);
+    rm.submitted.add(socket.id);
+    // when everyone submitted, ask both to reveal
+    if(rm.submitted.size >= Math.min(2, rm.players.size)){
+      io.to(rm.code).emit("reveal:request");
+    }
+    maybeResult(rm);
   });
 
-  socket.on("guess:submit", ({ room: r, guess }) => {
-    if (!room || r !== room) return;
-    const s = getState(room);
-    s.guesses.set(socket.id, guess);
-    maybeResolve(room);
+  socket.on("round:new",({room})=>{
+    const rm = getRoom(room);
+    rm.round += 1;
+    rm.commits.clear(); rm.secrets.clear(); rm.nonces.clear();
+    rm.guesses.clear(); rm.submitted.clear(); rm.revealed.clear();
+    io.to(rm.code).emit("round:reset");
   });
 
-  socket.on("round:new", ({ room: r }) => {
-    if (!room || r !== room) return;
-    const s = getState(room);
-    s.commits.clear();
-    s.reveals.clear();
-    s.guesses.clear();
-    io.to(room).emit("round:reset");
+  socket.on("disconnect",()=>{
+    if(!myRoom) return;
+    const p = myRoom.players.get(socket.id);
+    if(p){ p.online=false; io.to(myRoom.code).emit("presence",{type:"leave",id:socket.id,name:p.name}); }
+    emitPlayers(myRoom);
   });
 
-  socket.on("disconnect", () => {
-    if (!room) return;
-    const s = getState(room);
-    const p = s.players.get(socket.id);
-    if (p) p.online = false;
-    socket.to(room).emit("presence", { type: "leave", id: socket.id, name: p ? p.name : "Player" });
-    emitPlayers(room);
-  });
+  function maybeResult(rm){
+    const need = Math.min(2, rm.players.size);
+    if(rm.submitted.size < need) return;
+    if(rm.revealed.size < need) return;
+
+    if(rm.resultEmittedFor.has(rm.round)) return; // already scored this round
+    rm.resultEmittedFor.add(rm.round);
+
+    const playerIds = Array.from(rm.players.keys()).slice(0,2);
+    if(playerIds.length<2){ return; }
+
+    const [a,b] = playerIds;
+    const pa = { id:a, secret: rm.secrets.get(a), guess: rm.guesses.get(a) };
+    const pb = { id:b, secret: rm.secrets.get(b), guess: rm.guesses.get(b) };
+
+    const aCorrect = pa.guess === pb.secret;
+    const bCorrect = pb.guess === pa.secret;
+
+    if(aCorrect) rm.scores.set(a, (rm.scores.get(a)||0)+1);
+    if(bCorrect) rm.scores.set(b, (rm.scores.get(b)||0)+1);
+
+    emitPlayers(rm);
+
+    io.to(a).emit("round:result",{
+      you:{secret:pa.secret,guess:pa.guess,correct:aCorrect},
+      opponent:{secret:pb.secret,guess:pb.guess,correct:bCorrect}
+    });
+    io.to(b).emit("round:result",{
+      you:{secret:pb.secret,guess:pb.guess,correct:bCorrect},
+      opponent:{secret:pa.secret,guess:pa.guess,correct:aCorrect}
+    });
+  }
 });
 
 const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => {});
+server.listen(PORT, ()=> console.log(`Rivals Guess-Who on :${PORT}`));
