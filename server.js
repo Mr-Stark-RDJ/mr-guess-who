@@ -1,4 +1,3 @@
-// server.js  (ESM)
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import express from "express";
@@ -15,17 +14,12 @@ const io = new Server(server, { cors: { origin: "*" } });
 
 app.use(express.static(path.join(__dirname, "public")));
 
-function sha256Hex(s) {
-  return createHash("sha256").update(s).digest("hex");
-}
+const sha256Hex = (s) => createHash("sha256").update(s).digest("hex");
 
-// ===== rooms state =====
 const rooms = new Map();
-// { code, players(Map), scores(Map), commits(Map), secrets(Map), nonces(Map),
-//   guesses(Map), submitted(Set), revealed(Set), round, resultEmittedFor(Set) }
 
 function getRoom(code) {
-  code = code.toUpperCase();
+  code = String(code || "").toUpperCase();
   if (!rooms.has(code)) {
     rooms.set(code, {
       code,
@@ -45,33 +39,48 @@ function getRoom(code) {
 }
 
 function emitPlayers(rm) {
-  const players = Array.from(rm.players.values());
-  const scores = Object.fromEntries(Array.from(rm.scores.entries()));
+  const players = Array.from(rm.players.values()).map((p) => ({
+    id: p.pid,
+    name: p.name,
+    online: p.online,
+  }));
+  const scores = Object.fromEntries(rm.scores);
   io.to(rm.code).emit("players", { players, scores });
 }
 
-// ===== sockets =====
 io.on("connection", (socket) => {
-  let myRoom = null;
+  socket.data.room = null;
+  socket.data.pid = null;
 
-  socket.on("join", (code) => {
-    myRoom = getRoom(code);
-    socket.join(myRoom.code);
-    myRoom.players.set(socket.id, { id: socket.id, name: "Player", online: true });
-    if (!myRoom.scores.has(socket.id)) myRoom.scores.set(socket.id, 0);
+  socket.on("join", (payload) => {
+    const code = typeof payload === "string" ? payload : payload?.code;
+    const pid = typeof payload === "string" ? socket.id : payload?.pid;
+    const name = typeof payload === "string" ? "Player" : payload?.name || "Player";
 
-    socket.emit("joined", { room: myRoom.code });
-    io.to(myRoom.code).emit("presence", {
-      type: "join",
-      id: socket.id,
-      name: myRoom.players.get(socket.id).name,
-    });
-    emitPlayers(myRoom);
+    const rm = getRoom(code);
+    socket.join(rm.code);
+    socket.data.room = rm.code;
+    socket.data.pid = pid;
+
+    const existing = rm.players.get(pid);
+    if (existing) {
+      existing.socketId = socket.id;
+      existing.online = true;
+      if (name && name !== existing.name) existing.name = String(name).slice(0, 20);
+    } else {
+      rm.players.set(pid, { pid, name: String(name).slice(0, 20), online: true, socketId: socket.id });
+      if (!rm.scores.has(pid)) rm.scores.set(pid, 0);
+    }
+
+    socket.emit("joined", { room: rm.code, pid });
+    io.to(rm.code).emit("presence", { type: "join", id: pid, name: rm.players.get(pid).name });
+    emitPlayers(rm);
   });
 
   socket.on("name:set", ({ room, name }) => {
-    const rm = getRoom(room);
-    const p = rm.players.get(socket.id);
+    const rm = getRoom(room || socket.data.room);
+    const pid = socket.data.pid;
+    const p = rm.players.get(pid);
     if (p) {
       p.name = String(name || "Player").slice(0, 20);
       emitPlayers(rm);
@@ -79,45 +88,44 @@ io.on("connection", (socket) => {
   });
 
   socket.on("chat", ({ room, user, text }) => {
-    const rm = getRoom(room);
+    const rm = getRoom(room || socket.data.room);
     io.to(rm.code).emit("chat", { user, text, ts: Date.now() });
   });
 
   socket.on("secret:commit", ({ room, commit }) => {
-    const rm = getRoom(room);
-    rm.commits.set(socket.id, commit);
-    rm.secrets.delete(socket.id);
-    rm.nonces.delete(socket.id);
-    rm.revealed.delete(socket.id);
+    const rm = getRoom(room || socket.data.room);
+    const pid = socket.data.pid;
+    rm.commits.set(pid, commit);
+    rm.secrets.delete(pid);
+    rm.nonces.delete(pid);
+    rm.revealed.delete(pid);
   });
 
   socket.on("secret:reveal", ({ room, secret, nonce }) => {
-    const rm = getRoom(room);
-    const commit = rm.commits.get(socket.id);
+    const rm = getRoom(room || socket.data.room);
+    const pid = socket.data.pid;
+    const commit = rm.commits.get(pid);
     if (!commit) return;
-    const ok = sha256Hex(`${secret}:${nonce}`) === commit;
-    if (!ok) return;
-    rm.secrets.set(socket.id, secret);
-    rm.nonces.set(socket.id, nonce);
-    rm.revealed.add(socket.id);
+    if (sha256Hex(`${secret}:${nonce}`) !== commit) return;
+    rm.secrets.set(pid, secret);
+    rm.nonces.set(pid, nonce);
+    rm.revealed.add(pid);
     maybeResult(rm);
   });
 
   socket.on("guess:submit", ({ room, guess }) => {
-    const rm = getRoom(room);
-    if (rm.submitted.has(socket.id)) return; // no double-submits -> no double points
-    rm.guesses.set(socket.id, guess);
-    rm.submitted.add(socket.id);
-
-    // when everyone submitted, ask both to reveal
-    if (rm.submitted.size >= Math.min(2, rm.players.size)) {
-      io.to(rm.code).emit("reveal:request");
-    }
+    const rm = getRoom(room || socket.data.room);
+    const pid = socket.data.pid;
+    if (rm.submitted.has(pid)) return;
+    rm.guesses.set(pid, guess);
+    rm.submitted.add(pid);
+    const act = activePair(rm);
+    if (act.length === 2) io.to(rm.code).emit("reveal:request");
     maybeResult(rm);
   });
 
   socket.on("round:new", ({ room }) => {
-    const rm = getRoom(room);
+    const rm = getRoom(room || socket.data.room);
     rm.round += 1;
     rm.commits.clear();
     rm.secrets.clear();
@@ -125,52 +133,63 @@ io.on("connection", (socket) => {
     rm.guesses.clear();
     rm.submitted.clear();
     rm.revealed.clear();
+    rm.resultEmittedFor.delete(rm.round);
     io.to(rm.code).emit("round:reset");
   });
 
   socket.on("disconnect", () => {
-    if (!myRoom) return;
-    const p = myRoom.players.get(socket.id);
+    const rm = getRoom(socket.data.room || "");
+    const pid = socket.data.pid;
+    if (!rm || !pid) return;
+    const p = rm.players.get(pid);
     if (p) {
       p.online = false;
-      io.to(myRoom.code).emit("presence", { type: "leave", id: socket.id, name: p.name });
+      io.to(rm.code).emit("presence", { type: "leave", id: pid, name: p.name });
+      emitPlayers(rm);
     }
-    emitPlayers(myRoom);
   });
-
-  function maybeResult(rm) {
-    const need = Math.min(2, rm.players.size);
-    if (rm.submitted.size < need) return;
-    if (rm.revealed.size < need) return;
-
-    if (rm.resultEmittedFor.has(rm.round)) return; // guard against re-emitting/scoring
-    rm.resultEmittedFor.add(rm.round);
-
-    const playerIds = Array.from(rm.players.keys()).slice(0, 2);
-    if (playerIds.length < 2) return;
-
-    const [a, b] = playerIds;
-    const pa = { id: a, secret: rm.secrets.get(a), guess: rm.guesses.get(a) };
-    const pb = { id: b, secret: rm.secrets.get(b), guess: rm.guesses.get(b) };
-
-    const aCorrect = pa.guess === pb.secret;
-    const bCorrect = pb.guess === pa.secret;
-
-    if (aCorrect) rm.scores.set(a, (rm.scores.get(a) || 0) + 1);
-    if (bCorrect) rm.scores.set(b, (rm.scores.get(b) || 0) + 1);
-
-    emitPlayers(rm);
-
-    io.to(a).emit("round:result", {
-      you: { secret: pa.secret, guess: pa.guess, correct: aCorrect },
-      opponent: { secret: pb.secret, guess: pb.guess, correct: bCorrect },
-    });
-    io.to(b).emit("round:result", {
-      you: { secret: pb.secret, guess: pb.guess, correct: bCorrect },
-      opponent: { secret: pa.secret, guess: pa.guess, correct: aCorrect },
-    });
-  }
 });
+
+function activePair(rm) {
+  const pids = Array.from(rm.players.keys());
+  return pids
+    .filter((pid) => rm.submitted.has(pid) && rm.revealed.has(pid) && rm.guesses.has(pid) && rm.secrets.has(pid))
+    .slice(0, 2);
+}
+
+function maybeResult(rm) {
+  const pair = activePair(rm);
+  if (pair.length !== 2) return;
+  if (rm.resultEmittedFor.has(rm.round)) return;
+
+  const [A, B] = pair;
+  const a = { pid: A, secret: rm.secrets.get(A), guess: rm.guesses.get(A) };
+  const b = { pid: B, secret: rm.secrets.get(B), guess: rm.guesses.get(B) };
+  if (!a.secret || !b.secret || !a.guess || !b.guess) return;
+
+  rm.resultEmittedFor.add(rm.round);
+
+  const aCorrect = a.guess === b.secret;
+  const bCorrect = b.guess === a.secret;
+  if (aCorrect) rm.scores.set(A, (rm.scores.get(A) || 0) + 1);
+  if (bCorrect) rm.scores.set(B, (rm.scores.get(B) || 0) + 1);
+
+  emitPlayers(rm);
+
+  const sockA = rm.players.get(A)?.socketId;
+  const sockB = rm.players.get(B)?.socketId;
+
+  if (sockA)
+    io.to(sockA).emit("round:result", {
+      you: { secret: a.secret, guess: a.guess, correct: aCorrect },
+      opponent: { secret: b.secret, guess: b.guess, correct: bCorrect },
+    });
+  if (sockB)
+    io.to(sockB).emit("round:result", {
+      you: { secret: b.secret, guess: b.guess, correct: bCorrect },
+      opponent: { secret: a.secret, guess: a.guess, correct: aCorrect },
+    });
+}
 
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => console.log(`Rivals Guess-Who on :${PORT}`));
