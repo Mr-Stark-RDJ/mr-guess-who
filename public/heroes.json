@@ -7,12 +7,20 @@
     "img": "https://rivalskins.com/wp-content/uploads/marvel-assets/assets/lord-icons/Captain%20America%20Deluxe%20Avatar.png"
   },
   {
+    "id": "angela",
+    "name": "Angela",
+    "slug": "angela",
+    "role": "Vanguard",
+    "img": "https://rivalskins.com/wp-content/uploads/marvel-assets/assets/lord-icons/Angela%20Deluxe%20Avatar.png"
+  },
+  {
     "id": "doctor-strange",
     "name": "Doctor Strange",
     "slug": "doctor-strange",
     "role": "Vanguard",
     "img": "https://rivalskins.com/wp-content/uploads/marvel-assets/assets/lord-icons/Doctor%20Strange%20Deluxe%20Avatar.png"
   },
+
   {
     "id": "emma-frost",
     "name": "Emma Frost",
@@ -158,7 +166,7 @@
     "name": "Phoenix",
     "slug": "phoenix",
     "role": "Duelist",
-    "img": "https://rivalskins.com/wp-content/uploads/marvel-assets/assets/lord-icons/Phoenix%20Deluxe%20Avatar%20%28will%20be%20replaced%20by%20better%20image%20once%20its%20released%29.png"
+    "img": "https://rivalskins.com/wp-content/uploads/marvel-assets/assets/lord-icons/Phoenix%20Deluxe%20Avatar.png"
   },
   {
     "id": "psylocke",
